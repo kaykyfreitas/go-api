@@ -86,6 +86,15 @@ jobs:
           projectBaseDir: app
           qualityGate: true 
 
+      # 🚨 NOVO PASSO DE DEBUG: Lista recursivamente o conteúdo da raiz do repositório
+      - name: Debug List Repository Root Contents
+        run: ls -alR
+
+      # 🚨 NOVO PASSO DE DEBUG: Lista recursivamente o conteúdo da pasta 'app'
+      - name: Debug List App Directory Contents
+        run: ls -alR
+        working-directory: ${{ env.GO_PROJECT_PATH }}
+
       - name: SonarQube Quality Gate check
         id: sonarqube-quality-gate-check
         uses: sonarsource/sonarqube-quality-gate-action@master
