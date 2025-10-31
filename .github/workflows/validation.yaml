@@ -10,6 +10,7 @@ on:
 env:
   GO_VERSION: '1.25'
   DOCKER_IMAGE_NAME: ${{ github.repository }}
+  GO_PROJECT_PATH: ./app
 
 jobs:
   validate:
@@ -39,11 +40,13 @@ jobs:
 
       - name: Download Go dependencies
         run: go mod download
+        working-directory: ${{ env.GO_PROJECT_PATH }}
 
       # 3. 🎯 Executar Testes de Unidade
       # Valida a lógica da aplicação. Se falhar, o build do Docker não é executado.
       - name: Run Unit Tests
-        run: cd app && go test ./... -v
+        run: go test ./... -v
+        working-directory: ${{ env.GO_PROJECT_PATH }}
 
       # 4. 🐳 Validar Compilação e Build da Imagem Docker
       # O parâmetro 'push: false' garante que o Dockerfile seja executado
@@ -54,9 +57,10 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile 
+          file: ${{ env.GO_PROJECT_PATH }}/Dockerfile 
           tags: ${{ env.DOCKER_IMAGE_NAME }}:test-build-only
           push: false 
+          
           
       - name: Cleanup Docker Images
         if: always()
