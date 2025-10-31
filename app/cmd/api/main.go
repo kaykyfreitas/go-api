@@ -38,6 +38,8 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 
 func main() {
 
+	println("Test Coverage")
+
 	server := server.NewServer()
 
 	// Create a done channel to signal when the shutdown is complete
