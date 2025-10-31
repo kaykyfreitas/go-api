@@ -56,8 +56,8 @@ jobs:
         if: success()
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ${{ env.GO_PROJECT_PATH }}/Dockerfile 
+          context: ${{ env.GO_PROJECT_PATH }}
+          file: ./Dockerfile 
           tags: ${{ env.DOCKER_IMAGE_NAME }}:test-build-only
           push: false 
           
