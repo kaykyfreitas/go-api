@@ -1,10 +1,8 @@
 name: CI Go Test & Docker Build Validation
 
 on:
-  push:
-    branches: [ main, master ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, release ]
 
 env:
   GO_VERSION: '1.25'
