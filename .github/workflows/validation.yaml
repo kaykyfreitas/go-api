@@ -100,7 +100,7 @@ jobs:
         uses: sonarsource/sonarqube-quality-gate-action@master
         with:
           pollingTimeoutSec: 600
-          buildInfo: ${{ env.GO_PROJECT_PATH }}
+          scanMetadataReportFile: ${{ env.GO_PROJECT_PATH }}/.scannerwork/report-task.txt
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
