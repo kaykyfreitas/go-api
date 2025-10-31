@@ -42,6 +42,13 @@ jobs:
         run: go test -coverprofile=coverage.out -covermode=atomic ./...
         working-directory: ${{ env.GO_PROJECT_PATH }}
 
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage-report
+          path: ${{ env.GO_PROJECT_PATH }}/coverage.out
+          retention-days: 1
+
       - name: Validate Docker Multi-Stage Build
         if: success()
         uses: docker/build-push-action@v5
@@ -64,6 +71,12 @@ jobs:
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
     
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: go-coverage-report
+          path: ${{ env.GO_PROJECT_PATH }} # Baixa o arquivo 'coverage.out' para a pasta 'app/'
+
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
