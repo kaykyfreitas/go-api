@@ -11,6 +11,7 @@ env:
   GO_VERSION: '1.25'
   DOCKER_IMAGE_NAME: ${{ github.repository }}
   GO_PROJECT_PATH: ./app
+  SONAR_PROJECT_KEY: 'kaykyfreitas_go-api'
 
 jobs:
   validate:
@@ -84,3 +85,9 @@ jobs:
         with:
           projectBaseDir: app
           qualityGate: true 
+
+      - name: Check Quality Gate
+        uses: SonarSource/quality-gate-action@v1
+        with:
+          apiToken: ${{ secrets.SONAR_TOKEN }}
+          projectKey: ${{ env.SONAR_PROJECT_KEY }}
