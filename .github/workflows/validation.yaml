@@ -14,8 +14,9 @@ env:
   SONAR_PROJECT_KEY: 'kaykyfreitas_go-api'
 
 jobs:
-  validate:
-    name: Test Go Code and Validate Docker Build
+
+  test:
+    name: Test Go Code
     runs-on: ubuntu-latest
     
     steps:
@@ -50,23 +51,10 @@ jobs:
           path: ${{ env.GO_PROJECT_PATH }}/coverage.out
           retention-days: 1
 
-      - name: Validate Docker Multi-Stage Build
-        if: success()
-        uses: docker/build-push-action@v5
-        with:
-          context: ${{ env.GO_PROJECT_PATH }}
-          file: ${{ env.GO_PROJECT_PATH }}/Dockerfile 
-          tags: ${{ env.DOCKER_IMAGE_NAME }}:test-build-only
-          push: false 
-          
-      - name: Cleanup Docker Images
-        if: always()
-        run: docker rmi ${{ env.DOCKER_IMAGE_NAME }}:test-build-only || true
-
   sonarqube:
     name: SonarQube
     runs-on: ubuntu-latest
-    needs: [ validate ]
+    needs: [ test ]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -86,15 +74,6 @@ jobs:
           projectBaseDir: app
           qualityGate: true 
 
-      # 🚨 NOVO PASSO DE DEBUG: Lista recursivamente o conteúdo da raiz do repositório
-      - name: Debug List Repository Root Contents
-        run: ls -alR
-
-      # 🚨 NOVO PASSO DE DEBUG: Lista recursivamente o conteúdo da pasta 'app'
-      - name: Debug List App Directory Contents
-        run: ls -alR
-        working-directory: ${{ env.GO_PROJECT_PATH }}
-
       - name: SonarQube Quality Gate check
         id: sonarqube-quality-gate-check
         uses: sonarsource/sonarqube-quality-gate-action@master
@@ -104,5 +83,38 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-      - name: "Example show SonarQube Quality Gate Status value"
-        run: echo "The Quality Gate status is ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
+      # - name: "Example show SonarQube Quality Gate Status value"
+      #   run: echo "The Quality Gate status is ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      # - name: Validate Docker Multi-Stage Build
+      #   if: success()
+      #   uses: docker/build-push-action@v5
+      #   with:
+      #     context: ${{ env.GO_PROJECT_PATH }}
+      #     file: ${{ env.GO_PROJECT_PATH }}/Dockerfile 
+      #     tags: ${{ env.DOCKER_IMAGE_NAME }}:test-build-only
+      #     push: false 
+          
+      - name: Build image
+        run: |
+          cd ${{ env.GO_PROJECT_PATH }}
+
+          docker build -t ${{ env.DOCKER_IMAGE_NAME }}:test-only .
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.DOCKER_IMAGE_NAME }}:test-only
+          severity: MEDIUM # UNKNOWN, LOW, MEDIUM, HIGH, CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: 1 # Fail the job if severity defined vulnerabilities are found
+
+      - name: Cleanup Docker Images
+        if: always()
+        run: docker rmi ${{ env.DOCKER_IMAGE_NAME }}:test-only || true
+
