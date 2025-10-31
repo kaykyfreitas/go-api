@@ -1,0 +1,62 @@
+name: CI Go Test & Docker Build Validation
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+# Variáveis de ambiente
+env:
+  GO_VERSION: '1.25'
+  DOCKER_IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  validate:
+    name: Test Go Code and Validate Docker Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. Configurar Go
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }} 
+
+      # 2. Otimização de Cache de Módulos
+      - name: Go Mod Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download Go dependencies
+        run: go mod download
+
+      # 3. 🎯 Executar Testes de Unidade
+      # Valida a lógica da aplicação. Se falhar, o build do Docker não é executado.
+      - name: Run Unit Tests
+        run: cd app && go test ./... -v
+
+      # 4. 🐳 Validar Compilação e Build da Imagem Docker
+      # O parâmetro 'push: false' garante que o Dockerfile seja executado
+      # e a imagem construída localmente, confirmando que a compilação Go (no Docker)
+      # está OK e o Dockerfile não tem erros, sem iniciar o container.
+      - name: Validate Docker Multi-Stage Build
+        if: success()
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile 
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:test-build-only
+          push: false 
+          
+      - name: Cleanup Docker Images
+        if: always()
+        run: docker rmi ${{ env.DOCKER_IMAGE_NAME }}:test-build-only || true
+        # Limpa a imagem local criada para evitar consumo de espaço na VM do runner.
