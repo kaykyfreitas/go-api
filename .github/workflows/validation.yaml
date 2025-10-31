@@ -86,8 +86,14 @@ jobs:
           projectBaseDir: app
           qualityGate: true 
 
-      - name: Check Quality Gate
-        uses: SonarSource/quality-gate-action@v1
+      - name: SonarQube Quality Gate check
+        id: sonarqube-quality-gate-check
+        uses: sonarsource/sonarqube-quality-gate-action@master
         with:
-          apiToken: ${{ secrets.SONAR_TOKEN }}
-          projectKey: ${{ env.SONAR_PROJECT_KEY }}
+          pollingTimeoutSec: 600
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }} #OPTIONAL
+
+      - name: "Example show SonarQube Quality Gate Status value"
+        run: echo "The Quality Gate status is ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
