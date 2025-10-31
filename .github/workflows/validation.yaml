@@ -6,7 +6,6 @@ on:
   pull_request:
     branches: [ main, master ]
 
-# Variáveis de ambiente
 env:
   GO_VERSION: '1.25'
   DOCKER_IMAGE_NAME: ${{ github.repository }}
@@ -21,20 +20,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 1. Configurar Go
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }} 
 
-      # 2. Otimização de Cache de Módulos
-      # O cache é configurado na raiz, mas a chave depende dos arquivos em 'app/'
       - name: Go Mod Cache
         uses: actions/cache@v4
         with:
           path: ~/go/pkg/mod
-          # A chave agora referencia explicitamente os arquivos em 'app/'
-          key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('app/go.sum') }}
+          key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('${{ env.GO_PROJECT_PATH }}/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-${{ env.GO_VERSION }}-
 
@@ -42,16 +37,10 @@ jobs:
         run: go mod download
         working-directory: ${{ env.GO_PROJECT_PATH }}
 
-      # 3. 🎯 Executar Testes de Unidade
-      # Valida a lógica da aplicação. Se falhar, o build do Docker não é executado.
       - name: Run Unit Tests
         run: go test ./... -v
         working-directory: ${{ env.GO_PROJECT_PATH }}
 
-      # 4. 🐳 Validar Compilação e Build da Imagem Docker
-      # O parâmetro 'push: false' garante que o Dockerfile seja executado
-      # e a imagem construída localmente, confirmando que a compilação Go (no Docker)
-      # está OK e o Dockerfile não tem erros, sem iniciar o container.
       - name: Validate Docker Multi-Stage Build
         if: success()
         uses: docker/build-push-action@v5
@@ -61,8 +50,6 @@ jobs:
           tags: ${{ env.DOCKER_IMAGE_NAME }}:test-build-only
           push: false 
           
-          
       - name: Cleanup Docker Images
         if: always()
         run: docker rmi ${{ env.DOCKER_IMAGE_NAME }}:test-build-only || true
-        # Limpa a imagem local criada para evitar consumo de espaço na VM do runner.
