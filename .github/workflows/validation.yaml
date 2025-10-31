@@ -87,7 +87,7 @@ jobs:
       #   run: echo "The Quality Gate status is ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
 
   docker:
-    name: Docker Build
+    name: Docker Validate
     runs-on: ubuntu-latest
     steps:
       # - name: Validate Docker Multi-Stage Build
@@ -98,14 +98,17 @@ jobs:
       #     file: ${{ env.GO_PROJECT_PATH }}/Dockerfile 
       #     tags: ${{ env.DOCKER_IMAGE_NAME }}:test-build-only
       #     push: false 
+
+      - name: Checkout code
+        uses: actions/checkout@v4
           
-      - name: Build image
+      - name: Docker Build
         run: |
           cd ${{ env.GO_PROJECT_PATH }}
 
           docker build -t ${{ env.DOCKER_IMAGE_NAME }}:test-only .
 
-      - name: Scan image with Trivy
+      - name: Trivy Scan
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.DOCKER_IMAGE_NAME }}:test-only
@@ -114,7 +117,7 @@ jobs:
           format: table
           exit-code: 1 # Fail the job if severity defined vulnerabilities are found
 
-      - name: Cleanup Docker Images
+      - name: Cleanup Images
         if: always()
         run: docker rmi ${{ env.DOCKER_IMAGE_NAME }}:test-only || true
 
