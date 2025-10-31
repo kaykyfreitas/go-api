@@ -1,8 +1,11 @@
 name: CI Go Test & Docker Build Validation
 
 on:
+  push:
+    branches: [ main, release ]
   pull_request:
     branches: [ main, release ]
+    types: [ opened, synchronize, reopened ]
 
 env:
   GO_VERSION: '1.25'
@@ -51,3 +54,15 @@ jobs:
       - name: Cleanup Docker Images
         if: always()
         run: docker rmi ${{ env.DOCKER_IMAGE_NAME }}:test-build-only || true
+
+  sonarqube:
+    name: SonarQube
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
